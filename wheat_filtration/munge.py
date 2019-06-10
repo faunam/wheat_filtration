@@ -7,6 +7,20 @@ import shlex
 def call(x): return subprocess.call(shlex.split(x))
 
 
+def next_punc_index(i, tokens):
+    # returns the index of the element following the next punctuation after
+    # index i in an array of tokens. if no punctuation within 250 indeces after i,
+    # returns the index i + 250 (to ensure max 500 segment length)
+    curr_index = i
+    while curr_index < (i + 250):
+        possible_punc = tokens[curr_index][-1]
+        if possible_punc == "." or possible_punc == "!" or possible_punc == "?":
+            return curr_index + 1
+        else:
+            curr_index += 1
+    return curr_index
+
+
 def split_corpus(source: str):
         # splits corpus stored in source into appropriately sized documents (100-500 words).
         # source can be path to text file or directory containing multiple text files.
@@ -47,24 +61,19 @@ def split_corpus(source: str):
     return split_corp
 
 
-def next_punc_index(i, tokens):
-    # returns the index of the element following the next punctuation after
-    # index i in an array of tokens. if no punctuation within 250 indeces after i,
-    # returns the index i + 250 (to ensure max 500 segment length)
-    curr_index = i
-    while curr_index < (i + 250):
-        possible_punc = tokens[curr_index][-1]
-        if possible_punc == "." or possible_punc == "!" or possible_punc == "?":
-            return curr_index + 1
-        else:
-            curr_index += 1
-    return curr_index
-
-
 def write_clean_corpus(split_corpus: List[str], doc_uniq_ids: list,
                        doc_names: List[str], new_file_name: str):
     # formats split_corpus for mallet
     # writes formatted corpus to file, where each document is formatted thusly:
     # <unique_id>\t<orig_doc_id>\t<text>
+    # new_file_name includes the filepath or will be created locally
     # raises InvalidIDs if doc_uniq_ids has any repeats
-    pass
+
+    # if len(doc_uniq_ids) != len(set(doc_uniq_ids)):
+    #     raise NonUniqueIDs
+    # does this make sense to do?
+    with open(new_file_name, "w")as out:
+        str_ids = [str(x) for x in doc_uniq_ids]
+        for i, line in enumerate(split_corpus):
+            prepped_text = str_ids[i] + "\t" + doc_names[i] + "\t" + line
+            out.write(prepped_text + "\n")

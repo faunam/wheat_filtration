@@ -60,14 +60,39 @@ class TestMungeMethods(unittest.TestCase):
         #                   NotADirectoryError)
 
     def test_write_clean_corpus(self):
-        # check:every line has correct formatting
+
+        # every line has correct formatting
+        text = munge.split_corpus("test_files/simple_whale_100.txt")
+        ids = list(range(len(text)))
+        names = ["w" + str(x) for x in ids]
+        munge.write_clean_corpus(
+            text, ids, names, "test_files/clean_whale_100.txt")
+        with open("test_files/clean_whale_100.txt", "r") as inf:
+            for i, line in enumerate(inf):
+                chunks = line.split("\t")
+                self.assertEqual(chunks[0], str(ids[i]))
+                self.assertEqual(chunks[1], names[i])
+                self.assertEqual(len(chunks), 3)
+
+        text = munge.split_corpus("test_files/quixote.txt")
+        ids = list(range(len(text)))
+        names = ["w" + str(x) for x in ids]
+        munge.write_clean_corpus(
+            text, ids, names, "test_files/clean_quixote.txt")
+        with open("test_files/clean_quixote.txt", "r") as inf:
+            for i, line in enumerate(inf):
+                chunks = line.split("\t")
+                self.assertEqual(chunks[0], str(ids[i]))
+                self.assertEqual(chunks[1], names[i])
+                self.assertEqual(len(chunks), 3)
+
         # ids are unique (i could raise an error if not)
-        pass
 
 
-file_factory(100)
-file_factory(101)
-file_fact_2(50)
+# file_factory(100)
+# file_factory(101)
+# file_fact_2(50)
+
 
 if __name__ == '__main__':
     unittest.main()
