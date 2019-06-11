@@ -1,4 +1,5 @@
 from typing import List
+import string
 import os
 import subprocess
 import shlex
@@ -56,14 +57,13 @@ def split_corpus(source: str):
             new_seg += " ".join(tokens[j:])
         split_corp.append(new_seg)
         i = j
-    # split_corp.append(" ".join(tokens[i:]))  # the remaining tokens
 
     return split_corp
 
 
 def write_clean_corpus(split_corpus: List[str], doc_uniq_ids: list,
                        doc_names: List[str], new_file_name: str):
-    # formats split_corpus for mallet
+    # formats split_corpus for mallet, and removes punctuation in text
     # writes formatted corpus to file, where each document is formatted thusly:
     # <unique_id>\t<orig_doc_id>\t<text>
     # new_file_name includes the filepath or will be created locally
@@ -75,5 +75,8 @@ def write_clean_corpus(split_corpus: List[str], doc_uniq_ids: list,
     with open(new_file_name, "w")as out:
         str_ids = [str(x) for x in doc_uniq_ids]
         for i, line in enumerate(split_corpus):
-            prepped_text = str_ids[i] + "\t" + doc_names[i] + "\t" + line
+            clean_line = line.translate(
+                str.maketrans('', '', string.punctuation))  # remove punctuation
+            # got this code snippet from stack overflow https://stackoverflow.com/questions/265960/best-way-to-strip-punctuation-from-a-string-in-python
+            prepped_text = str_ids[i] + "\t" + doc_names[i] + "\t" + clean_line
             out.write(prepped_text + "\n")
