@@ -22,6 +22,7 @@ def correct_format(filename):
 
 
 class TopicModel:
+    """class for topic models"""
 
     def __init__(self, filepath, num_topics, optimize_interval):  # include opt interval?
         """Creates a mallet topic model of filepath, which is a txt file
