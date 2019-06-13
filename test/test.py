@@ -54,27 +54,17 @@ class TestMungeMethods(unittest.TestCase):
                 -function can handle text files and directories of text files
                 -each line (document) is between 250 and 500 words
                 -each line either ends on punctuation or is 500 words"""
-        # handles text files
-        for doc in munge.split_corpus("test_files/simple_whale_100.txt"):
-            # all segments are more than 100, less than 500
-            self.assertTrue(len(doc.split()) >= 250)
-            self.assertTrue(len(doc.split()) <= 502)
-            # all segments either end on punctuation or are 500 words
-            self.assertTrue(
-                len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
-
-        for doc in munge.split_corpus("test_files/simple_angel_50.txt"):
-            self.assertTrue(len(doc.split()) <= 500)
-            self.assertTrue(len(doc.split()) >= 250)
-            self.assertTrue(
-                len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
-
-        # handles directories with text files and other kinds of files
-        for doc in munge.split_corpus("test_files/"):
-            self.assertTrue(len(doc.split()) <= 500)
-            self.assertTrue(len(doc.split()) >= 250)
-            self.assertTrue(
-                len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
+        # handles text files and directories containin txt files and other file types
+        corpora = ["test_files/simple_whale_100.txt",
+                   "test_files/simple_angel_50.txt", "test_files/"]
+        for corpus in corpora:
+            for doc in munge.split_corpus(corpus):
+                # all segments are more than 100, less than 500
+                self.assertTrue(len(doc.split()) >= 250)
+                self.assertTrue(len(doc.split()) <= 502)
+                # all segments either end on punctuation or are 500 words
+                self.assertTrue(
+                    len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
 
         # other possible conditions to test for:
         # test for exception handling -> if file is not a text file or directory
@@ -98,11 +88,15 @@ class TestMungeMethods(unittest.TestCase):
 
         # ids are unique
         split_angels = munge.split_corpus("test_files/simple_angel_50.txt")
-        # last id is repeated twice
         angel_ids_shallow = SAMPLE_METADATA["angel"]["ids"][:][:-1]
         angel_ids_shallow.append(angel_ids_shallow[-1])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(AssertionError):  # last id is repeated twice
             munge.write_clean_corpus(split_angels, angel_ids_shallow, SAMPLE_METADATA["angel"]["names"],
+                                     "test_files/angels_nonunique.txt")
+
+        # doc names, doc ids, document lists are same length
+        with self.assertRaises(AssertionError):  # last id is repeated twice
+            munge.write_clean_corpus(split_angels, angel_ids_shallow[:-1], SAMPLE_METADATA["angel"]["names"],
                                      "test_files/angels_nonunique.txt")
 
     def test_munge_complex(self):
