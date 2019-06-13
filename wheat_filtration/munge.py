@@ -44,15 +44,14 @@ def split_corpus(source: str):
             with open(source + filename, "r") as inf:
                 full_corp += inf.read()
 
-    tokens = full_corp.split()
+    tokens = full_corp.split()  # tokens have punc attached
     num_tokens = len(tokens)
-    # tokens have punc attached
     split_corp = []
     i = 0
     while i < (num_tokens-250):
         j = _next_punc_index(i+250, tokens)
         new_seg = " ".join(tokens[i:j])
-        if j > (num_tokens - 250):  # end of string #not triggering for some reason
+        if j > (num_tokens - 250):  # end of string
             new_seg += " " + " ".join(tokens[j:])
         split_corp.append(new_seg)
         i = j
@@ -76,9 +75,10 @@ def write_clean_corpus(split_corpus_list: List[str], doc_uniq_ids: list,
         new_file_name (str): path to the file where the prepped corpus will be stored.
     Raises:
         AssertionError: IDs in doc_uniq_ids are not unique
-
+        AssertionError: name, id, and document lists are not the same length
     Returns: none"""
-    assert len(doc_uniq_ids) == len(set(doc_uniq_ids)), "IDs are not unique."
+    assert len(doc_uniq_ids) == len(set(doc_uniq_ids)
+                                    ), "IDs in doc_uniq_ids are not unique."
     assert len(doc_names) == len(doc_uniq_ids) == len(
         split_corpus_list), "name, id, and document lists are not the same length."
     with open(new_file_name, "w")as out:
