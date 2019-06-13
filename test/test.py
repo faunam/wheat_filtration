@@ -88,11 +88,15 @@ class TestMungeMethods(unittest.TestCase):
 
         # ids are unique
         split_angels = munge.split_corpus("test_files/simple_angel_50.txt")
-        # last id is repeated twice
         angel_ids_shallow = SAMPLE_METADATA["angel"]["ids"][:][:-1]
         angel_ids_shallow.append(angel_ids_shallow[-1])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(AssertionError):  # last id is repeated twice
             munge.write_clean_corpus(split_angels, angel_ids_shallow, SAMPLE_METADATA["angel"]["names"],
+                                     "test_files/angels_nonunique.txt")
+
+        # doc names, doc ids, document lists are same length
+        with self.assertRaises(AssertionError):  # last id is repeated twice
+            munge.write_clean_corpus(split_angels, angel_ids_shallow[:-1], SAMPLE_METADATA["angel"]["names"],
                                      "test_files/angels_nonunique.txt")
 
     def test_munge_complex(self):
