@@ -49,34 +49,22 @@ class TestMungeMethods(unittest.TestCase):
         munge.write_clean_corpus(
             SAMPLE_METADATA["quixote"]["text"], SAMPLE_METADATA["quixote"]["ids"], SAMPLE_METADATA["quixote"]["names"], "test_files/munged_quixote.txt")
 
-    def make_linelength_tests(self, filename):
-        """Generates line length tests for documents in filename: 
-        checks that each document is 250-500 words long, and each document either
-        ends on punctuation or is 500 words"""
-        for doc in munge.split_corpus(filename):
-            # all segments are more than 100, less than 500
-            self.assertTrue(len(doc.split()) >= 250)
-            self.assertTrue(len(doc.split()) <= 502)
-            # all segments either end on punctuation or are 500 words
-            self.assertTrue(
-                len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
-
     def test_split_corpus_simple(self):
         """Tests munge.split_corpus on simple test corpora. checks:
                 -function can handle text files and directories of text files
                 -each line (document) is between 250 and 500 words
                 -each line either ends on punctuation or is 500 words"""
         # handles text files and directories containin txt files and other file types
-        corpora = ["test_files/simple_whale_100.txt", "test_files/simple_angel_50.txt", "test_files/"]
+        corpora = ["test_files/simple_whale_100.txt",
+                   "test_files/simple_angel_50.txt", "test_files/"]
         for corpus in corpora:
-          for doc in munge.split_corpus(corpus):
-              # all segments are more than 100, less than 500
-              self.assertTrue(len(doc.split()) >= 250)
-              self.assertTrue(len(doc.split()) <= 502)
-              # all segments either end on punctuation or are 500 words
-              self.assertTrue(
-                  len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
-
+            for doc in munge.split_corpus(corpus):
+                # all segments are more than 100, less than 500
+                self.assertTrue(len(doc.split()) >= 250)
+                self.assertTrue(len(doc.split()) <= 502)
+                # all segments either end on punctuation or are 500 words
+                self.assertTrue(
+                    len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
 
         # other possible conditions to test for:
         # test for exception handling -> if file is not a text file or directory
