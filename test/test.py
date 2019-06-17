@@ -1,65 +1,78 @@
 import os
+import string
 import unittest
 
 import munge
-
-# sentence constants for text file generation
-WHALE_SENTENCE = "the great big whale splashed the timid blue fox.\n"
-ANGEL_SENTENCE = "the big white angel was on fire, and the black angel put him out and said \"hey idiot\".\n"
+import mallet
 
 
-def generate_metadata(keys, texts):
-    """Creates a dictionary mapping each corpus in keys to a dictionary of ids and names
-    generated for each document in that corpus"""
-    metadata = {}
-    for i, corpus in enumerate(keys):
-        text = munge.split_corpus(texts[i])
-        ids = list(range(len(text)))
-        names = [corpus + str(x) for x in ids]
-        metadata[corpus] = {"text": text, "ids": ids, "names": names}
-    return metadata
+class PreprocessingUnitTestClass(unittest.TestCase):
+    """class of unit tests for the preprocessing steps of"""
 
+    def file_factory(self, n_lines, sample_sentence, sentence_id):
+        """Writes a file with n lines of sample_sentence to the file location
+        test_files/simple_{sentence_id}_{n_lines}.txt"""
+        with open("test_files/simple_" + sentence_id + "_" + str(n_lines) + ".txt", "w") as out:
+            for _ in range(n_lines):
+                out.write(sample_sentence)
 
-# a dictionary containing metadata (ids and names of documents) for munged sample text files
-SAMPLE_METADATA = generate_metadata(["angel", "quixote"],
-                                    ["test_files/simple_angel_50.txt", "test_files/quixote.txt"])
-# not sure how to handle this.. i wanted to create simple_angel_50.txt with my setup function but then this constant would get buried...
+    def generate_metadata(self, keys, texts):
+        """Creates a dictionary mapping each corpus in keys to a dictionary of ids and names
+        generated for each document in that corpus"""
+        metadata = {}
+        for i, corpus in enumerate(keys):
+            text = munge.corpus_to_documents(munge.import_corpus(texts[i]))
+            ids = list(range(len(text)))
+            names = [corpus + str(x) for x in ids]
+            metadata[corpus] = {"text": text, "ids": ids, "names": names}
+        return metadata
 
-
-def file_factory(n_lines, sample_sentence, sentence_id):
-    """Writes a file with n lines of sample_sentence to the file location
-    test_files/simple_{sentence_id}_{n_lines}.txt"""
-    with open("test_files/simple_" + sentence_id + "_" + str(n_lines) + ".txt", "w") as out:
-        i = 0
-        while i < n_lines:
-            out.write(sample_sentence)
-            i += 1
-
-
-class TestMungeMethods(unittest.TestCase):
-    """Test class for methods in munge.py: split_corpus and write_clean_corpus"""
     @classmethod
     def setUpClass(cls):
         """Creates temporary test files for class, located in test_files/"""
-        file_factory(100, WHALE_SENTENCE, "whale")
-        file_factory(50, ANGEL_SENTENCE, "angel")
-        file_factory(100, ANGEL_SENTENCE, "angel")
-        munge.write_clean_corpus(
-            SAMPLE_METADATA["angel"]["text"], SAMPLE_METADATA["angel"]["ids"], SAMPLE_METADATA["angel"]["names"], "test_files/munged_angel_50.txt")
-        munge.write_clean_corpus(
-            SAMPLE_METADATA["quixote"]["text"], SAMPLE_METADATA["quixote"]["ids"], SAMPLE_METADATA["quixote"]["names"], "test_files/munged_quixote.txt")
+        # sentence constants for text file generation
+        cls.sample_sentence_whale = "the great big whale splashed the timid blue fox.\n"
+        cls.sample_sentence_angel = "the big white angel was on fire, and the black angel put him out and said \"hey idiot\".\n"
 
-    def test_split_corpus_simple(self):
-        """Tests munge.split_corpus on simple test corpora. checks:
+        cls.file_factory(cls, 100, cls.sample_sentence_whale, "whale")
+        cls.file_factory(cls, 50, cls.sample_sentence_angel, "angel")
+        cls.file_factory(cls, 100, cls.sample_sentence_angel, "angel")
+        # a dictionary containing metadata (ids and names of documents) for munged sample text files
+        cls.sample_metadata = cls.generate_metadata(cls, ["angel", "quixote"],
+                                                    ["test_files/simple_angel_50.txt", "test_files/quixote.txt"])
+
+        munge.write_clean_corpus(
+            cls.sample_metadata["angel"]["text"], cls.sample_metadata["angel"]["ids"], cls.sample_metadata["angel"]["names"], "test_files/munged_angel_50.txt")
+        munge.write_clean_corpus(
+            cls.sample_metadata["quixote"]["text"], cls.sample_metadata["quixote"]["ids"], cls.sample_metadata["quixote"]["names"], "test_files/munged_quixote.txt")
+
+    @classmethod
+    def tearDownClass(cls):
+        """Deletes temporary files created for class. Runs after all tests in class"""
+        test_file_list = (["test_files/simple_angel_100.txt", "test_files/munged_angel_50.txt",
+                           "test_files/simple_whale_100.txt", "test_files/munged_quixote.txt", "test_files/simple_angel_50.txt"])
+        for test_file in test_file_list:
+            os.remove(test_file)
+
+
+class TestMungeMethods(PreprocessingUnitTestClass):
+    """Test class for methods in munge.py: split_corpus and write_clean_corpus"""
+    @classmethod
+    def setUpClass(cls):
+        super(TestMungeMethods, cls).setUpClass()
+
+    def test_corpus_to_documents_simple(self):
+        """Tests munge.corpus_to_documents on simple test corpora. checks:
                 -function can handle text files and directories of text files
                 -each line (document) is between 250 and 500 words
                 -each line either ends on punctuation or is 500 words"""
         # handles text files and directories containin txt files and other file types
         corpora = ["test_files/simple_whale_100.txt",
                    "test_files/simple_angel_50.txt", "test_files/"]
-        for corpus in corpora:
-            for doc in munge.split_corpus(corpus):
-                # all segments are more than 100, less than 500
+        for filename in corpora:
+            corpus = munge.import_corpus(filename)
+            for doc in munge.corpus_to_documents(corpus):
+                # all segments are more than 100, less than 500 words
                 self.assertTrue(len(doc.split()) >= 250)
                 self.assertTrue(len(doc.split()) <= 502)
                 # all segments either end on punctuation or are 500 words
@@ -76,58 +89,96 @@ class TestMungeMethods(unittest.TestCase):
                 -every line of out file has correct formatting: < unique_id >\t < orig_doc_id >\t < text >
                 -AssertionError is raised when list of unique_ids are not unique"""
         # every line has correct formatting <unique_id>\t<orig_doc_id>\t<text>
-        with open("test_files/munged_angel_50.txt", "r") as inf:
-            for i, line in enumerate(inf):
+        with open("test_files/munged_angel_50.txt", "r") as in_file:
+            for i, line in enumerate(in_file):
                 features = line.split("\t")
-
                 self.assertEqual(features[0], str(
-                    SAMPLE_METADATA["angel"]["ids"][i]))
+                    self.sample_metadata["angel"]["ids"][i]))
                 self.assertEqual(
-                    features[1], SAMPLE_METADATA["angel"]["names"][i])
+                    features[1], self.sample_metadata["angel"]["names"][i])
                 self.assertEqual(len(features), 3)
 
         # ids are unique
-        split_angels = munge.split_corpus("test_files/simple_angel_50.txt")
-        angel_ids_shallow = SAMPLE_METADATA["angel"]["ids"][:][:-1]
+        corpus = munge.import_corpus("test_files/simple_angel_50.txt")
+        split_angels = munge.corpus_to_documents(corpus)
+        angel_ids_shallow = self.sample_metadata["angel"]["ids"][:][:-1]
         angel_ids_shallow.append(angel_ids_shallow[-1])
         with self.assertRaises(AssertionError):  # last id is repeated twice
-            munge.write_clean_corpus(split_angels, angel_ids_shallow, SAMPLE_METADATA["angel"]["names"],
+            munge.write_clean_corpus(split_angels, angel_ids_shallow, self.sample_metadata["angel"]["names"],
                                      "test_files/angels_nonunique.txt")
 
         # doc names, doc ids, document lists are same length
         with self.assertRaises(AssertionError):  # last id is repeated twice
-            munge.write_clean_corpus(split_angels, angel_ids_shallow[:-1], SAMPLE_METADATA["angel"]["names"],
+            munge.write_clean_corpus(split_angels, angel_ids_shallow[:-1], self.sample_metadata["angel"]["names"],
                                      "test_files/angels_nonunique.txt")
+
+    def test__corpus_to_doc_tokens_simple(self):
+        """Tests munge._corpus_to_doc_tokens on simple test corpora. checks:
+        -function can handle text files and directories of text files
+        -each element(document) is an array containing between 250 and 500 strings (tokens)
+        -no string contains punctuation"""
+        # handles text files and directories containin txt files and other file types
+        corpora = ["test_files/simple_whale_100.txt",
+                   "test_files/simple_angel_50.txt", "test_files/"]
+        for filename in corpora:
+            corpus = munge.import_corpus(filename)
+            for doc in munge.corpus_to_doc_tokens(corpus):
+                # all documents are more than 100, less than 500 tokens
+                self.assertTrue(len(doc) >= 250)
+                self.assertTrue(len(doc) <= 502)
+                # no punctuation in any tokens
+                for token in doc:
+                    token_no_punc = token.translate(
+                        str.maketrans('', '', string.punctuation + "—"))
+                    self.assertTrue(token == token_no_punc)
 
     def test_munge_complex(self):
         """Tests munge.split_corpus and munge.write_clean_corpus on a real-world
         example corpus (Don Quixote). Uses same tests from test_split_corpus_simple
         and test_write_clean_corpus_simple."""  # do i need to repeat what I'm checking for? or is this sufficient?
 
-        # split_corpus tests
-        for doc in munge.split_corpus("test_files/quixote.txt"):
+        # corpus_to_documents tests
+        corpus = munge.import_corpus("test_files/quixote.txt")
+        for doc in munge.corpus_to_documents(corpus):
             self.assertTrue(len(doc.split()) <= 500)
             self.assertTrue(len(doc.split()) >= 250)
             self.assertTrue(
                 len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
 
         # write_clean_corpus tests
-        with open("test_files/munged_quixote.txt", "r") as inf:
-            for i, line in enumerate(inf):
+        with open("test_files/munged_quixote.txt", "r") as in_file:
+            for i, line in enumerate(in_file):
                 features = line.split("\t")
                 self.assertEqual(features[0], str(
-                    SAMPLE_METADATA["quixote"]["ids"][i]))
+                    self.sample_metadata["quixote"]["ids"][i]))
                 self.assertEqual(
-                    features[1], SAMPLE_METADATA["quixote"]["names"][i])
+                    features[1], self.sample_metadata["quixote"]["names"][i])
                 self.assertEqual(len(features), 3)
 
+
+class TestMalletMethods(PreprocessingUnitTestClass):
+
     @classmethod
-    def tearDownClass(cls):
-        """Deletes temporary files created for class. Runs after all tests in class"""
-        test_file_list = (["test_files/simple_angel_100.txt", "test_files/munged_angel_50.txt",
-                           "test_files/simple_whale_100.txt", "test_files/munged_quixote.txt"])
-        for fil in test_file_list:
-            os.remove(fil)
+    def setUpClass(cls):
+        super(TestMalletMethods, cls).setUpClass()
+
+    def test_make_topic_model(self):
+
+        # raise exception if MALLET_PATH is not defined and mallet is not in path
+        # with self.assertRaises(Exception):  # last id is repeated twice
+        #     corpus = munge.corpus_to_doc_tokens(
+        #         munge.import_corpus("test_files/simple_whale_100.txt"))
+        #     mallet.make_topic_model(corpus, 10)
+
+        corpora = ["test_files/quixote.txt", "test_files/"]
+        # creates a mallet topic model of prepped corpus
+        for filename in corpora:
+            corpus = munge.corpus_to_doc_tokens(munge.import_corpus(filename))
+        # test that **kwargs work
+            model = mallet.make_topic_model(
+                corpus, 10, optimize_interval=10, iterations=100)
+        # check that return of make_topic_model is an LDAMallet object by checking if one of its attributes exists
+            self.assertIsNotNone(model.print_topics())
 
 
 if __name__ == '__main__':
