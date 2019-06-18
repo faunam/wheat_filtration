@@ -96,7 +96,7 @@ def corpus_to_doc_tokens(corpus: str):
     document_in_progress = []
     for sentence in sentences:
         while len(document_in_progress) > 500:
-            corpus_documents.append(" ".join(document_in_progress[:500]))
+            corpus_documents.append(document_in_progress[:500])
             document_in_progress = document_in_progress[500:]
         if len(document_in_progress) < 250:
             document_in_progress.extend(clean_punc(sentence).split())

@@ -7,7 +7,8 @@ import mallet
 
 
 class PreprocessingUnitTestClass(unittest.TestCase):
-    """class of unit tests for the preprocessing steps of"""
+    """Class of unit tests for preprocessing steps. Contains setUp and tearDown class methods that create
+    relevant test files."""
 
     def file_factory(self, n_lines, sample_sentence, sentence_id):
         """Writes a file with n lines of sample_sentence to the file location
@@ -29,7 +30,8 @@ class PreprocessingUnitTestClass(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Creates temporary test files for class, located in test_files/"""
+        """Creates temporary test files for class, located in test_files/ 
+        Creates class variable sample_metadata containing generated metadata for angel and quixote corpora."""
         # sentence constants for text file generation
         cls.sample_sentence_whale = "the great big whale splashed the timid blue fox.\n"
         cls.sample_sentence_angel = "the big white angel was on fire, and the black angel put him out and said \"hey idiot\".\n"
@@ -56,33 +58,53 @@ class PreprocessingUnitTestClass(unittest.TestCase):
 
 
 class TestMungeMethods(PreprocessingUnitTestClass):
-    """Test class for methods in munge.py: split_corpus and write_clean_corpus"""
-    @classmethod
-    def setUpClass(cls):
-        super(TestMungeMethods, cls).setUpClass()
+    """Test class for methods in munge.py: import_corpus, corpus_to_documents, 
+    corpus_to_doc_tokens, write_clean_corpus"""
 
     def test_corpus_to_documents_simple(self):
         """Tests munge.corpus_to_documents on simple test corpora. checks:
                 -function can handle text files and directories of text files
                 -each line (document) is between 250 and 500 words
                 -each line either ends on punctuation or is 500 words"""
-        # handles text files and directories containin txt files and other file types
+
+        # import_corpus handles text files and directories containin txt files and other file types
         corpora = ["test_files/simple_whale_100.txt",
                    "test_files/simple_angel_50.txt", "test_files/"]
         for filename in corpora:
             corpus = munge.import_corpus(filename)
-            for doc in munge.corpus_to_documents(corpus):
-                # all segments are more than 100, less than 500 words
+            for doc in munge.corpus_to_documents(corpus)[:-1]:
+                # all documents (except last) are between 250 and 500 words
                 self.assertTrue(len(doc.split()) >= 250)
-                self.assertTrue(len(doc.split()) <= 502)
-                # all segments either end on punctuation or are 500 words
+                self.assertTrue(len(doc.split()) <= 500)
+                # all documents (except last) either end on punctuation or are 500 words. 5 characters back to accommodate
+                # for extra characters like quotes and parentheses
                 self.assertTrue(
-                    len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
+                    len(doc.split()) == 500 or "." in doc[-5:] or "!" in doc[-5:] or "?" in doc[-5:])
 
         # other possible conditions to test for:
         # test for exception handling -> if file is not a text file or directory
         # all tokens are words, that may have punc connected. but no "" or white space
         # all words from original file are in cleaned file
+
+    def test_corpus_to_doc_tokens_simple(self):
+        """Tests munge._corpus_to_doc_tokens on simple test corpora. checks:
+        -function can handle text files and directories of text files
+        -each element(document) is an array containing between 250 and 500 strings (tokens)
+        -no string contains punctuation"""
+        # handles text files and directories containin txt files and other file types
+        corpora = ["test_files/simple_whale_100.txt",
+                   "test_files/simple_angel_50.txt", "test_files/"]
+        for filename in corpora:
+            corpus = munge.import_corpus(filename)
+            for doc in munge.corpus_to_doc_tokens(corpus):
+                # all documents (except last) are between 250 and 500 tokens
+                self.assertTrue(len(doc) >= 250)
+                self.assertTrue(len(doc) <= 500)
+                # no punctuation in any tokens
+                for token in doc:
+                    token_no_punc = token.translate(
+                        str.maketrans('', '', string.punctuation + "—"))
+                    self.assertTrue(token == token_no_punc)
 
     def test_write_clean_corpus_simple(self):
         """Tests munge.write_clean_corpus on simple test files. checks:
@@ -112,26 +134,6 @@ class TestMungeMethods(PreprocessingUnitTestClass):
             munge.write_clean_corpus(split_angels, angel_ids_shallow[:-1], self.sample_metadata["angel"]["names"],
                                      "test_files/angels_nonunique.txt")
 
-    def test__corpus_to_doc_tokens_simple(self):
-        """Tests munge._corpus_to_doc_tokens on simple test corpora. checks:
-        -function can handle text files and directories of text files
-        -each element(document) is an array containing between 250 and 500 strings (tokens)
-        -no string contains punctuation"""
-        # handles text files and directories containin txt files and other file types
-        corpora = ["test_files/simple_whale_100.txt",
-                   "test_files/simple_angel_50.txt", "test_files/"]
-        for filename in corpora:
-            corpus = munge.import_corpus(filename)
-            for doc in munge.corpus_to_doc_tokens(corpus):
-                # all documents are more than 100, less than 500 tokens
-                self.assertTrue(len(doc) >= 250)
-                self.assertTrue(len(doc) <= 502)
-                # no punctuation in any tokens
-                for token in doc:
-                    token_no_punc = token.translate(
-                        str.maketrans('', '', string.punctuation + "—"))
-                    self.assertTrue(token == token_no_punc)
-
     def test_munge_complex(self):
         """Tests munge.split_corpus and munge.write_clean_corpus on a real-world
         example corpus (Don Quixote). Uses same tests from test_split_corpus_simple
@@ -139,11 +141,14 @@ class TestMungeMethods(PreprocessingUnitTestClass):
 
         # corpus_to_documents tests
         corpus = munge.import_corpus("test_files/quixote.txt")
-        for doc in munge.corpus_to_documents(corpus):
-            self.assertTrue(len(doc.split()) <= 500)
+        for doc in munge.corpus_to_documents(corpus)[:-1]:
+            # all documents (except last) are between 250 and 500 words
             self.assertTrue(len(doc.split()) >= 250)
+            self.assertTrue(len(doc.split()) <= 500)
+            # all documents (except last) either end on punctuation or are 500 words. 5 characters back to accommodate
+            # for extra characters like quotes and parentheses
             self.assertTrue(
-                len(doc.split()) == 500 or doc[-1] in (".", "!", "?"))
+                len(doc.split()) == 500 or "." in doc[-5:] or "!" in doc[-5:] or "?" in doc[-5:])
 
         # write_clean_corpus tests
         with open("test_files/munged_quixote.txt", "r") as in_file:
@@ -157,28 +162,26 @@ class TestMungeMethods(PreprocessingUnitTestClass):
 
 
 class TestMalletMethods(PreprocessingUnitTestClass):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestMalletMethods, cls).setUpClass()
+    """Test class for methods in mallet.py: make_topic_model"""
 
     def test_make_topic_model(self):
-
+        """Tests that mallet.make_topic_model creates an LDAMallet class object, and raises 
+        an exception if the path to mallet is not found"""
         # raise exception if MALLET_PATH is not defined and mallet is not in path
-        # with self.assertRaises(Exception):  # last id is repeated twice
-        #     corpus = munge.corpus_to_doc_tokens(
-        #         munge.import_corpus("test_files/simple_whale_100.txt"))
-        #     mallet.make_topic_model(corpus, 10)
+        with self.assertRaises(Exception):  # last id is repeated twice
+            corpus = munge.corpus_to_doc_tokens(
+                munge.import_corpus("test_files/simple_whale_100.txt"))
+            mallet.make_topic_model(corpus, 10)
 
-        corpora = ["test_files/quixote.txt", "test_files/"]
-        # creates a mallet topic model of prepped corpus
-        for filename in corpora:
-            corpus = munge.corpus_to_doc_tokens(munge.import_corpus(filename))
-        # test that **kwargs work
-            model = mallet.make_topic_model(
-                corpus, 10, optimize_interval=10, iterations=100)
-        # check that return of make_topic_model is an LDAMallet object by checking if one of its attributes exists
-            self.assertIsNotNone(model.print_topics())
+        # corpora = ["test_files/quixote.txt", "test_files/"]
+        # # creates a mallet topic model of prepped corpus
+        # for filename in corpora:
+        #     corpus = munge.corpus_to_doc_tokens(munge.import_corpus(filename))
+        # # test that **kwargs work
+        #     model = mallet.make_topic_model(
+        #         corpus, 10, optimize_interval=10, iterations=100)
+        # # check that return of make_topic_model is an LDAMallet object by checking if one of its attributes exists
+        #     self.assertIsNotNone(model.print_topics())
 
 
 if __name__ == '__main__':
