@@ -20,18 +20,18 @@ def make_topic_model(tokenized_corpus: str, n_topics: int, **kwargs):  # **kwarg
         tokenized_corpus (str):
         n_topics (int):
         alpha (int, optional) – Alpha parameter of LDA.
-        id2word (Dictionary, optional) – Mapping between tokens ids and words from corpus, 
+        id2word (Dictionary, optional) – Mapping between tokens ids and words from corpus,
             if not specified - will be inferred from corpus.
         workers (int, optional) – Number of threads that will be used for training.
         prefix (str, optional) – Prefix for produced temporary files.
-        optimize_interval (int, optional) – Optimize hyperparameters every optimize_interval 
+        optimize_interval (int, optional) – Optimize hyperparameters every optimize_interval
             iterations (sometimes leads to Java exception 0 to switch off hyperparameter optimization).
         iterations (int, optional) – Number of training iterations.
         topic_threshold (float, optional) – Threshold of the probability above which we consider a topic.
         random_seed (int, optional) – Random seed to ensure consistent results, if 0 - use system clock.
     Returns:
         topic_model (LdaMallet): a topic model class object created using the Gensim LDAMallet wrapper. See Gensim documentation
-        (https://radimrehurek.com/gensim/models/basemodel.html#gensim.models.basemodel.BaseTopicModel.get_topics) 
+        (https://radimrehurek.com/gensim/models/wrappers/ldamallet.html#gensim.models.wrappers.ldamallet.LdaMallet)
         for available class functions. [sufficient?]
     Raises:
         RuntimeError: If Mallet is not on path and MALLET_PATH isn't set to Mallet location.
