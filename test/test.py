@@ -30,7 +30,7 @@ class PreprocessingUnitTestClass(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Creates temporary test files for class, located in test_files/ 
+        """Creates temporary test files for class, located in test_files/
         Creates class variable sample_metadata containing generated metadata for angel and quixote corpora."""
         # sentence constants for text file generation
         cls.sample_sentence_whale = "the great big whale splashed the timid blue fox.\n"
@@ -58,7 +58,7 @@ class PreprocessingUnitTestClass(unittest.TestCase):
 
 
 class TestMungeMethods(PreprocessingUnitTestClass):
-    """Test class for methods in munge.py: import_corpus, corpus_to_documents, 
+    """Test class for methods in munge.py: import_corpus, corpus_to_documents,
     corpus_to_doc_tokens, write_clean_corpus"""
 
     def test_corpus_to_documents_simple(self):
@@ -165,23 +165,13 @@ class TestMalletMethods(PreprocessingUnitTestClass):
     """Test class for methods in mallet.py: make_topic_model"""
 
     def test_make_topic_model(self):
-        """Tests that mallet.make_topic_model creates an LDAMallet class object, and raises 
+        """Tests that mallet.make_topic_model creates an LDAMallet class object, and raises
         an exception if the path to mallet is not found"""
         # raise exception if MALLET_PATH is not defined and mallet is not in path
-        with self.assertRaises(Exception):  # last id is repeated twice
+        with self.assertRaises(RuntimeError):
             corpus = munge.corpus_to_doc_tokens(
                 munge.import_corpus("test_files/simple_whale_100.txt"))
             mallet.make_topic_model(corpus, 10)
-
-        # corpora = ["test_files/quixote.txt", "test_files/"]
-        # # creates a mallet topic model of prepped corpus
-        # for filename in corpora:
-        #     corpus = munge.corpus_to_doc_tokens(munge.import_corpus(filename))
-        # # test that **kwargs work
-        #     model = mallet.make_topic_model(
-        #         corpus, 10, optimize_interval=10, iterations=100)
-        # # check that return of make_topic_model is an LDAMallet object by checking if one of its attributes exists
-        #     self.assertIsNotNone(model.print_topics())
 
 
 if __name__ == '__main__':
