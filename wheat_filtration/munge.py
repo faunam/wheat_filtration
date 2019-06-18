@@ -41,7 +41,7 @@ def corpus_to_documents(corpus: str):
         corpus (str): a string containing the corpus
     Returns:
         corpus_documents (iterable of str): a list containing strings representing documents in the corpus.
-        Documents are 250-500 words, except possibly for the last document in the corpus. 
+        Documents are 250-500 words, except possibly for the last document in the corpus.
         They end on the next sentence punctuation after 250 words, or at 500 words, whichever comes first.
         If the sentence following a document is the last in the corpus, it is also included in the document."""
 

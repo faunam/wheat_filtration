@@ -5,7 +5,7 @@ import gensim.corpora as corpora
 from gensim.models.wrappers import LdaMallet
 
 
-MALLET_PATH = None  # "/Users/fauma/Mallet-master/bin/mallet"
+MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None  #
 
 
 def _call_command_line(string):

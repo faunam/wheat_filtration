@@ -164,14 +164,21 @@ class TestMungeMethods(PreprocessingUnitTestClass):
 class TestMalletMethods(PreprocessingUnitTestClass):
     """Test class for methods in mallet.py: make_topic_model"""
 
-    def test_make_topic_model(self):
-        """Tests that mallet.make_topic_model creates an LDAMallet class object, and raises
-        an exception if the path to mallet is not found"""
-        # raise exception if MALLET_PATH is not defined and mallet is not in path
-        with self.assertRaises(RuntimeError):
-            corpus = munge.corpus_to_doc_tokens(
-                munge.import_corpus("test_files/simple_whale_100.txt"))
-            mallet.make_topic_model(corpus, 10)
+    # def test_make_topic_model(self):
+    #     """Tests that mallet.make_topic_model creates an LdaMallet class object, and raises
+    #     an exception if the path to mallet is not found"""
+    #     # raise exception if MALLET_PATH is not defined and mallet is not in path
+    #     with self.assertRaises(RuntimeError):
+    #         corpus = munge.corpus_to_doc_tokens(
+    #             munge.import_corpus("test_files/simple_whale_100.txt"))
+    #         mallet.make_topic_model(corpus, 10)
+
+    def test_gib(self):
+        corpus = munge.corpus_to_doc_tokens(
+            munge.import_corpus("test_files/quixote.txt"))
+        model = mallet.make_topic_model(corpus, 10, optimize_interval=10)
+        print(model.get_topics())
+        print(model.load_word_topics)
 
 
 if __name__ == '__main__':
