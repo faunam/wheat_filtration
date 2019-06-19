@@ -1,88 +1,56 @@
 import shlex
 import subprocess
 
-import numpy as np
+import gensim.corpora as corpora
+from gensim.models.wrappers import LdaMallet
 
 
-MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None
+MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None  #
 
 
-def call(x):
-    """executes string x as a command line prompt"""
-    return subprocess.call(shlex.split(x))
+def _call_command_line(string):
+    """Executes string as a command line prompt."""
+    return subprocess.call(shlex.split(string))
 
 
-def correct_format(filename):
-    """ returns true if each line in filename is of the format <unique_id>\t<orig_doc_id>\t<text>"""
-    with open(filename, "r") as inf:
-        for line in inf:
-            if len(line.split("\t")) != 3:
-                return False
-        return True
+def make_topic_model(tokenized_corpus: str, n_topics: int, **kwargs):  # **kwargs?
+    """Creates a mallet topic model of corpus with n_topics number of topics and
+    any other attributes specified.
+    Arguments:
+        tokenized_corpus (str):
+        n_topics (int):
+        alpha (int, optional) – Alpha parameter of LDA.
+        id2word (Dictionary, optional) – Mapping between tokens ids and words from corpus,
+            if not specified - will be inferred from corpus.
+        workers (int, optional) – Number of threads that will be used for training.
+        prefix (str, optional) – Prefix for produced temporary files.
+        optimize_interval (int, optional) – Optimize hyperparameters every optimize_interval
+            iterations (sometimes leads to Java exception 0 to switch off hyperparameter optimization).
+        iterations (int, optional) – Number of training iterations.
+        topic_threshold (float, optional) – Threshold of the probability above which we consider a topic.
+        random_seed (int, optional) – Random seed to ensure consistent results, if 0 - use system clock.
+    Returns:
+        topic_model (LdaMallet): a topic model class object created using the Gensim LDAMallet wrapper. See Gensim documentation
+        (https://radimrehurek.com/gensim/models/wrappers/ldamallet.html#gensim.models.wrappers.ldamallet.LdaMallet)
+        for available class functions. [sufficient?]
+    Raises:
+        RuntimeError: If Mallet is not on path and MALLET_PATH isn't set to Mallet location.
+    """
+    path_to_mallet = MALLET_PATH
+    try:
+        if path_to_mallet is None:
+            # will this print something for user? is that an issue?
+            path_to_mallet = "mallet"
+        # tests that mallet is there, doesnt run it
+        _call_command_line(path_to_mallet)
+    except:
+        raise RuntimeError("Unable to locate mallet command {}. Please make sure Mallet is added to your PATH variable, or add the path to "
+                           "your Mallet installation to the MALLET_PATH variable at the top of mallet.py.".format(path_to_mallet))
 
+    id_to_word = corpora.Dictionary(tokenized_corpus)
+    term_document_frequency = [
+        id_to_word.doc2bow(doc) for doc in tokenized_corpus]
+    topic_model = LdaMallet(path_to_mallet, corpus=term_document_frequency,
+                            num_topics=n_topics, id2word=id_to_word, **kwargs)
 
-class TopicModel:
-    """class for topic models"""
-
-    def __init__(self, filepath, num_topics, optimize_interval):  # include opt interval?
-        """Creates a mallet topic model of filepath, which is a txt file
-        containing the preprocessed, formatted corpus. each line in the file
-        should have the following format: <unique_id>\t<orig_doc_id>\t<text>
-        Outputs a topic_model object that has fields: topic_keys_20, doc_prop_matrix, doc_names, doc_ids,"""
-        assert correct_format(filepath)
-
-        if MALLET_PATH is None:
-            try:
-                call("mallet")
-                path_to_mallet = "mallet"
-            except:
-                raise Exception(
-                    "Please enter the path to your Mallet directory in the MALLET_PATH variable at the top of mallet.py")
-
-        num_docs = 0
-        doc_ids = []
-        doc_names = []
-        with open(filepath, "r") as inf:
-            for line in inf:
-                num_docs += 1
-                doc_ids.append(line.split("\t")[0])
-                doc_names.append(line.split("\t")[1])
-        self.doc_ids = doc_ids  # array of doc unique ids
-        self.doc_names = doc_names  # array of doc names
-        self.num_docs = len(inf.readlines())
-        self.num_topics = num_topics
-        filestem = filepath[:-4]  # remove .txt
-        self.filestem = filestem
-
-        call(path_to_mallet + " import-file - -input " + filepath + " - -output " +
-             filestem + ".mallet --keep-sequence --remove-stopwords")
-        call(path_to_mallet + " train-topics --input " + filestem + ".mallet --num-topics "
-             + str(num_topics) + " --output-topic-keys " +
-             filestem + "_keys_20.txt --output-state "
-             + filestem + "_state.gz --output-doc-topics " + filestem +
-             "_doc_comp.txt --optimize-interval " + str(optimize_interval) +
-             " --inferencer-filename " + filestem + "_inferencer.mallet")
-
-        topic_array = []
-        with open(filestem + "_keys_20.txt", "r") as inf:
-            for line in inf:
-                topic_array.append(line.split("\t")[2])
-        self.topic_keys_20 = topic_array  # string list of top 20 keywords for each topic
-
-        m = np.zeros((self.num_docs, num_topics))
-        with open(filestem + "_doc_comp.txt", "r") as inf:
-            next(inf)
-            for i, line in enumerate(inf):
-                m[i] = line.split("\t")[2:]
-        self.doc_prop_matrix = m
-
-        self.inferencer_path = filestem + "_inferencer.mallet"
-        self.state_path = filestem + "_state.gz"
-
-    def get_n_topic_keys(self, n):
-        """returns a string list of the top n keywords for each topic"""
-        call(MALLET_PATH + " train-topics --input-state " + self.state_path +
-             " --input " + self.filestem + ".mallet --no-inference true --output-topic-keys "
-             + self.filestem + "_keys_" + str(n) + ".txt --num-top-words " + str(n))
-
-# Or returns outputs in a dataframe??
+    return topic_model
