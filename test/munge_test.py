@@ -3,10 +3,9 @@ import string
 import unittest
 
 import munge
-import mallet
 
 
-class PreprocessingUnitTestClass(unittest.TestCase):
+class MungeUnitTestClass(unittest.TestCase):
     """Class of unit tests for preprocessing steps. Contains setUp and tearDown class methods that create
     relevant test files."""
 
@@ -57,7 +56,7 @@ class PreprocessingUnitTestClass(unittest.TestCase):
             os.remove(test_file)
 
 
-class TestMungeMethods(PreprocessingUnitTestClass):
+class TestMungeMethods(MungeUnitTestClass):
     """Test class for methods in munge.py: import_corpus, corpus_to_documents,
     corpus_to_doc_tokens, write_clean_corpus"""
 
@@ -76,8 +75,8 @@ class TestMungeMethods(PreprocessingUnitTestClass):
                 # all documents (except last) are between 250 and 500 words
                 self.assertTrue(len(doc.split()) >= 250)
                 self.assertTrue(len(doc.split()) <= 500)
-                # all documents (except last) either end on punctuation or are 500 words. 5 characters back to accommodate
-                # for extra characters like quotes and parentheses
+                # all documents (except last) either end on punctuation or are 500 words.
+                # searching 5 characters back to account for extra characters like quotes and parentheses
                 self.assertTrue(
                     len(doc.split()) == 500 or "." in doc[-5:] or "!" in doc[-5:] or "?" in doc[-5:])
 
@@ -159,26 +158,6 @@ class TestMungeMethods(PreprocessingUnitTestClass):
                 self.assertEqual(
                     features[1], self.sample_metadata["quixote"]["names"][i])
                 self.assertEqual(len(features), 3)
-
-
-class TestMalletMethods(PreprocessingUnitTestClass):
-    """Test class for methods in mallet.py: make_topic_model"""
-
-    # def test_make_topic_model(self):
-    #     """Tests that mallet.make_topic_model creates an LdaMallet class object, and raises
-    #     an exception if the path to mallet is not found"""
-    #     # raise exception if MALLET_PATH is not defined and mallet is not in path
-    #     with self.assertRaises(RuntimeError):
-    #         corpus = munge.corpus_to_doc_tokens(
-    #             munge.import_corpus("test_files/simple_whale_100.txt"))
-    #         mallet.make_topic_model(corpus, 10)
-
-    def test_gib(self):
-        corpus = munge.corpus_to_doc_tokens(
-            munge.import_corpus("test_files/quixote.txt"))
-        model = mallet.make_topic_model(corpus, 10, optimize_interval=10)
-        print(model.get_topics())
-        print(model.load_word_topics)
 
 
 if __name__ == '__main__':
