@@ -21,10 +21,11 @@ def keyword_proportion(keyword_list, document):
     """Return an array with word list proportions for each document. Word list
     proportion: percentage of words in the given doc that are present in keyword_list"""
     num_keywords = 0.
-    for word in document.split():
+    doc_tokens = document.split()
+    for word in doc_tokens:
         if word in keyword_list:
             num_keywords += 1
-    return num_keywords/len(document.split())
+    return num_keywords/len(doc_tokens)
     # there may be a more graceful way to execute this but i cant think of it right now
 
 
@@ -32,7 +33,7 @@ def filter_corp(model, total_topic_prop_threshold, keyword_prop_threshold, relev
     # filters corpus by percentage of rel_topics, key_words, and super_key_words
     # returns subcorpus in the form of a dictionary? where keys are unique ids? and values are a string of the doc text
     subcorpus = {}
-    for i, doc in enumerate(model.corpus):
+    for i, doc in enumerate(model.docs):
         if superkeyword_presence(doc, superkeyword_list) or \
                 total_topic_proportion(relevant_topics, model.doc_topics[i]) > total_topic_prop_threshold or \
                 keyword_proportion(keyword_list, doc) > keyword_prop_threshold:
@@ -43,7 +44,9 @@ def filter_corp(model, total_topic_prop_threshold, keyword_prop_threshold, relev
 ######### under this line are things it would be nice to add later #############
 
 def proportion_lists():
+    # TODO
   # makes a matrix or list of ttp, superkeyword, and keyword proportion for the docs in corpus
+  # and sets the respective topic model attributes
     pass
 
 
