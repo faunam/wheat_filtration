@@ -5,6 +5,25 @@ import string
 import nltk.data
 
 
+# make punctuation dictionary
+PUNC_DICT = str.maketrans('', '', string.punctuation)
+# unicode latin supplement block
+for key in range(128, 191):
+    PUNC_DICT[key] = None
+# unicode general punctuation block
+for key in range(8192, 8304):
+    PUNC_DICT[key] = None
+# replace hyphens with spaces
+PUNC_DICT[8212] = " "
+
+
+def clean_punc(phrase):
+    """Return string cleaned of punctuation. Removes punctuation found in string.punctuation, 
+    unicode Latin supplement block (decimal representation: 123-190), and unicode 
+    general punctuation block (decimal representation: 8192-8303). Replaces hyphen (8212) with space."""
+    return phrase.translate(PUNC_DICT)
+
+
 def import_corpus(source: str):
     """Load corpus from source into one string.
     Arguments:
@@ -98,12 +117,6 @@ def corpus_to_doc_tokens(corpus: str, doc_size_range=(250, 500)):
     min_words = doc_size_range[0]
     max_words = doc_size_range[1]
 
-    def clean_punc(token):
-        # remove punctuation
-        # got this code snippet from stack overflow https://stackoverflow.com/questions/265960/best-way-to-strip-punctuation-from-a-string-in-python
-        return token.translate(
-            str.maketrans('', '', string.punctuation + "—"))
-
     corpus_documents = []
     document_in_progress = []
     for sentence in sentences:
@@ -150,8 +163,6 @@ def write_clean_corpus(split_corpus_list: List[str], doc_uniq_ids: list,
     str_ids = [str(x) for x in doc_uniq_ids]
     with open(new_file_name, "w") as out:
         for i, line in enumerate(split_corpus_list):
-            clean_line = line.translate(
-                str.maketrans('', '', string.punctuation + "—"))  # remove punctuation
-            # got this code snippet from stack overflow https://stackoverflow.com/questions/265960/best-way-to-strip-punctuation-from-a-string-in-python
+            clean_line = clean_punc(line)
             prepped_text = str_ids[i] + "\t" + doc_names[i] + "\t" + clean_line
             out.write(prepped_text + "\n")
