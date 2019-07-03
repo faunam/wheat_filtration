@@ -18,8 +18,8 @@ PUNC_DICT[8212] = " "
 
 
 def clean_punc(phrase):
-    """Return string cleaned of punctuation. Removes punctuation found in string.punctuation, 
-    unicode Latin supplement block (decimal representation: 123-190), and unicode 
+    """Return string cleaned of punctuation. Removes punctuation found in string.punctuation,
+    unicode Latin supplement block (decimal representation: 123-190), and unicode
     general punctuation block (decimal representation: 8192-8303). Replaces hyphen (8212) with space."""
     return phrase.translate(PUNC_DICT)
 
