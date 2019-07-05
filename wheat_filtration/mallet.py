@@ -198,9 +198,6 @@ class TopicModel():
             topic_model, self._docs, self._vocabulary = _make_mallet_model(
                 corpus_filepath, path_to_mallet, remove_stopwords, corpus_language, num_topics, **kwargs)
             self._n_docs = len(self.docs)
-            if self.n_docs < 100:  # an abnormally low corpus size
-                warnings.warn(
-                    "Corpus is abnormally small (below 100 documents).")
             self._n_voc_words = len(self.vocabulary)
             self._n_topics = num_topics
 
@@ -237,6 +234,10 @@ class TopicModel():
                 "Missing a Mallet file input. please make sure you provide arguments\
                 for all three parameters starting with \"mallet\"! If you don't have Mallet output files, don't \
                 input any arguments for these parameters.")
+
+        if self.n_docs < 100:  # an abnormally low corpus size
+            warnings.warn(
+                "Corpus is abnormally small (below 100 documents).")
 
     @property
     def docs(self):
