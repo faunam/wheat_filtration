@@ -5,16 +5,25 @@ import string
 import nltk.data
 
 
-# make punctuation dictionary
-PUNC_DICT = str.maketrans('', '', string.punctuation)
-# unicode latin supplement block
-for key in range(128, 191):
-    PUNC_DICT[key] = None
-# unicode general punctuation block
-for key in range(8192, 8304):
-    PUNC_DICT[key] = None
-# replace hyphens with spaces
-PUNC_DICT[8212] = " "
+def _make_punctuation_dict():
+    # make punctuation dictionary
+    punc_dict = str.maketrans('', '', string.punctuation)
+    # unicode latin supplement block
+    for key in range(128, 191):
+        punc_dict[key] = None
+    # unicode general punctuation block
+    for key in range(8192, 8304):
+        punc_dict[key] = None
+    # replace hyphens with spaces. hyphen codes according to http://jkorpela.fi/dashes.html#unidash
+    for key in range(8208, 8214):
+        punc_dict[key] = " "
+    for key in [45, 8722, 65112, 65123, 65293]:
+        punc_dict[key] = " "
+
+    return punc_dict
+
+
+PUNC_DICT = _make_punctuation_dict()
 
 
 def clean_punc(phrase):

@@ -1,15 +1,15 @@
 from collections import OrderedDict
 import os
-import subprocess
 import warnings
 
+from scipy.sparse import coo_matrix
 import gensim.corpora as corpora
 from gensim.models.wrappers import LdaMallet
 import numpy as np
 from nltk.corpus import stopwords
-from scipy.sparse import coo_matrix
 
 import munge
+import util
 
 # not sure what to do with this... vs code keeps moving it
 # do i even need to keep it in? can we just assume theyve done this?
@@ -17,104 +17,7 @@ import munge
 # nltk.download('stopwords')
 
 
-MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None  #
-
-
-def _call_command_line(string, **kwargs):
-    """Executes string as a command line prompt. stdout and stderr are keyword args."""
-    return subprocess.run(string, **kwargs)
-
-
-def _make_doc_dictionary(path_to_mallet, mallet_instance_filepath):
-    """Returns an Ordered Dictionary containing document unique IDs as keys and
-    preprocessed document text as values, for all documents in the corpus.
-    Creates and deletes a temporary file in the current directory called "temp_docs_will_be_deleted.txt". """
-    command = "{} info --input {} --print-instances".format(path_to_mallet,
-                                                            mallet_instance_filepath)
-    outfile = open("temp_docs_will_be_deleted.txt", "w")
-    _call_command_line(command.split(" "), stdout=outfile)
-    outfile.close()
-
-    docs_dictionary = OrderedDict()
-    with open("temp_docs_will_be_deleted.txt", "r") as in_file:
-        prev_line = ""
-        current_doc_id = ""
-        current_doc = []
-        for line in in_file:
-            if line.strip() == "":
-                docs_dictionary[current_doc_id] = " ".join(current_doc)
-                current_doc = []
-            elif prev_line.strip() == "":
-                current_doc_id = line.split()[0]
-            else:
-                current_doc.append(line.split()[1])
-            prev_line = line
-    os.remove("temp_docs_will_be_deleted.txt")
-    return docs_dictionary
-
-
-def _make_wordcount_and_vocab(mallet_topic_wordcount_filepath, n_topics):
-    """Returns a tuple containing a CSC sparse matrix of topic wordcounts, the corpus vocabulary,
-    and the size of the vocabulary. The matrix has topics as columns and words as rows,
-    so each entry is the total word count for that word in that topic.
-    The column index of the worcount matches the index of that word in the vocabulary array."""
-    with open(mallet_topic_wordcount_filepath, "r") as in_file:
-        lines = in_file.readlines()
-        n_voc_words = len(lines)
-        topic_wordcounts_matrix = np.zeros(
-            (n_topics, n_voc_words))
-        vocab = []
-        for word, line in enumerate(lines):
-            term_and_counts = line.split()
-            # the vocab term
-            vocab += term_and_counts[1:2]
-            topic_wordcount_pairs = term_and_counts[2:]
-            for pair in topic_wordcount_pairs:
-                topic, word_count = [int(num)
-                                     for num in pair.split(':')]
-                topic_wordcounts_matrix[topic, word] += word_count
-    # csc_matrix for storage simplicity
-    return (coo_matrix(topic_wordcounts_matrix).tocsc(), vocab, n_voc_words)
-
-
-def _make_doctopic_matrix(mallet_doctopic_filepath):
-    """Returns a tuple containing a matrix of document topic proportions, number of documents in the corpus,
-    and number of topics. The matrix has topics as columns and documents as rows,
-    so each entry is the proportion of the given document that that topic comprises."""
-    with open(mallet_doctopic_filepath, "r") as in_file:
-        corpus_doc_topics = in_file.readlines()
-        n_docs = len(corpus_doc_topics)
-        # the number of topics of the first line of the file
-        n_topics = len(corpus_doc_topics[0].split()[2:])
-        doc_topic_matrix = np.zeros((n_docs, n_topics))
-        for i, line in enumerate(corpus_doc_topics):
-            topics = line.split()[2:]
-            doc_topic_matrix[i] = [
-                float(topic_prop) for topic_prop in topics]
-    return (doc_topic_matrix, n_docs, n_topics)
-
-
-def _make_mallet_model(corpus_filepath, path_to_mallet, remove_stopwords, corpus_language, num_topics, **kwargs):
-    """Returns a tuple containing a gensim-created topic model (class LdaMallet),
-    the preprocessed corpus documents (OrderedDict), and the corpus vocabulary
-    (iter of str). The keys for the document dictionary are unique document ids of
-    the format "doc<i>" where i is the number of the document in the corpus."""
-    prepped_corpus = munge.corpus_to_doc_tokens(
-        munge.import_corpus(corpus_filepath))
-    if remove_stopwords:
-        stop_words = stopwords.words(corpus_language)
-        prepped_corpus = [
-            [word.lower() for word in doc if word.lower() not in stop_words] for doc in prepped_corpus]
-    id_to_word = corpora.Dictionary(prepped_corpus)
-    term_document_frequency = [
-        id_to_word.doc2bow(doc) for doc in prepped_corpus]
-    topic_model = LdaMallet(path_to_mallet, corpus=term_document_frequency,
-                            id2word=id_to_word, num_topics=num_topics, **kwargs)
-
-    docs = OrderedDict(("doc" + str(i), " ".join(doc))
-                       for i, doc in enumerate(prepped_corpus))
-
-    return (topic_model, docs, [word for word in id_to_word.values()])
+MALLET_PATH = None  # "/Users/fauma/Mallet-master/bin/mallet"  #
 
 
 class TopicModel():
@@ -133,7 +36,8 @@ class TopicModel():
         mallet_topic_wordcount_filepath (str, optional): the filepath of the Mallet
             output file for topic word counts. Default is None.
         mallet_instance_filepath (str, optional): the filepath of the mallet instance
-            file used to make the topic model (typically ends in ".mallet"). Default is None. #appropriate description?
+            # appropriate description?
+            file used to make the topic model (typically ends in ".mallet"). Default is None.
         remove_stopwords (bool, optional): Whether to remove stopwords. Default is True.
         corpus_language (str, optional): Language of corpus, to use for stopword removal. Must be in list of
             supported languages (https://pypi.org/project/stop-words/), and in lowercase letters, e.g. "english".
@@ -152,7 +56,7 @@ class TopicModel():
     Attributes:
         docs (OrderedDict): an ordered dictionary containing the (preprocessed) documents of the corpus
             as values and corresponding document unique IDs as keys.
-        topic_wordcounts (numpy.ndarray): a CSC sparse matrix containing the counts of each
+        topic_wordcounts (numpy.ndarray): a COO sparse matrix containing the counts of each
             vocabulary word in each topic. Shape: (number of topics, number of vocab words)
         doc_topic_proportions (numpy.ndarray): a matrix containing the topic
             proportions of each document. Shape: (number of topics, number of documents)
@@ -170,10 +74,123 @@ class TopicModel():
 
     Raises:
         RuntimeError: If Mallet is not on path and MALLET_PATH isn't set to Mallet location.
-        RuntimeError: If only one of mallet_doctopic_filepath, mallet_topic_wordcount_filepath, #appropriate error type?
+        # appropriate error type?
+        RuntimeError: If only one of mallet_doctopic_filepath, mallet_topic_wordcount_filepath,
         and mallet_instance_filepath is passed an argument. Must pass all an argument, or none.
         UserWarning: If corpus is unusually small (less than 100 documents).
     """
+
+    @classmethod
+    def _make_doc_dictionary(cls, path_to_mallet, mallet_instance_filepath):
+        """Assigns class attribute _docs, an Ordered Dictionary containing document
+        unique IDs as keys and preprocessed document text as values, for all documents in the corpus.
+        Creates and deletes a temporary file in the current directory called "temp_docs_will_be_deleted.txt". """
+        command = "{} info --input {} --print-instances".format(path_to_mallet,
+                                                                mallet_instance_filepath)
+        outfile = open("temp_docs_will_be_deleted.txt", "w")
+        util.call_command_line(command.split(" "), stdout=outfile)
+        outfile.close()
+
+        docs_dictionary = OrderedDict()
+        with open("temp_docs_will_be_deleted.txt", "r") as in_file:
+            prev_line = ""
+            current_doc_id = ""
+            current_doc = []
+            for line in in_file:
+                if line.strip() == "":
+                    docs_dictionary[current_doc_id] = " ".join(current_doc)
+                    current_doc = []
+                elif prev_line.strip() == "":
+                    current_doc_id = line.split()[0]
+                else:
+                    current_doc.append(line.split()[1])
+                prev_line = line
+        os.remove("temp_docs_will_be_deleted.txt")
+        cls._docs = docs_dictionary
+
+    @classmethod
+    def _make_wordcount_and_vocab(cls, mallet_topic_wordcount_filepath, n_topics):
+        """Assigns class attributes _topic_wordcounts (a COO sparse matrix of topic wordcounts)
+        _vocabulary (the corpus vocabulary), _n_voc_words (size of the vocabulary).
+        The matrix has topics as columns and words as rows, so each entry is the
+        total word count for that word in that topic. The column index of the worcount
+        matches the index of that word in the vocabulary array."""
+        with open(mallet_topic_wordcount_filepath, "r") as in_file:
+            lines = in_file.readlines()
+            n_voc_words = len(lines)
+            topic_wordcounts_matrix = np.zeros(
+                (n_topics, n_voc_words))
+            vocab = []
+            for word, line in enumerate(lines):
+                # format of line: <index> <word> <topic>:<count> <topic>:<count> ...
+                term_and_counts = line.split()
+                # the vocab term
+                vocab += term_and_counts[1:2]
+                topic_wordcount_pairs = term_and_counts[2:]
+                for pair in topic_wordcount_pairs:
+                    topic, word_count = [int(num)
+                                         for num in pair.split(':')]
+                    topic_wordcounts_matrix[topic, word] += word_count
+        # coo_matrix for storage simplicity
+        cls._topic_wordcounts = coo_matrix(topic_wordcounts_matrix)
+        cls._vocabulary, = vocab
+        cls._n_voc_words = n_voc_words
+
+    @classmethod
+    def _make_doctopic_matrix(cls, mallet_doctopic_filepath):
+        """Assigns class attributes _doc_topic_proportions (a matrix of document-topic
+        proportions), _n_docs (number of documents in the corpus), and _n_topics
+        (number of topics). The matrix has topics as columns and documents as rows,
+        so each entry is the proportion of the given document that that topic comprises."""
+        with open(mallet_doctopic_filepath, "r") as in_file:
+            corpus_doc_topics = in_file.readlines()
+            n_docs = len(corpus_doc_topics)
+            # the number of topics of the first line of the file
+            n_topics = len(corpus_doc_topics[0].split()[2:])
+            doc_topic_matrix = np.zeros((n_docs, n_topics))
+            for i, line in enumerate(corpus_doc_topics):
+                topics = line.split()[2:]
+                doc_topic_matrix[i] = [
+                    float(topic_prop) for topic_prop in topics]
+
+        cls._doc_topic_proportions = doc_topic_matrix
+        cls._n_docs = n_docs
+        cls._n_topics = n_topics
+
+    @classmethod
+    def _make_mallet_model(cls, corpus_filepath, path_to_mallet, remove_stopwords, corpus_language, num_topics, **kwargs):
+        """Returns a gensim-created topic model (class LdaMallet), and assigns class
+        attributes _docs (an OrderedDict containing the preprocessed corpus documents)
+        and _vocabulary (the corpus vocabulary (iter of str)). This function lowercases
+        all words in the corpus, and removes stopwords if remove_stopwords is True.
+        The keys for the document dictionary are unique document ids of the format
+        "doc<i>" where <i> is the number of the document in the corpus."""
+        prepped_corpus = munge.corpus_to_doc_tokens(
+            munge.import_corpus(corpus_filepath))
+
+        # make corpus lowercase, remove stopwords
+        if remove_stopwords:
+            stop_words = stopwords.words(corpus_language)
+            prepped_corpus = [
+                [word.lower() for word in doc if word.lower() not in stop_words] for doc in prepped_corpus]
+        else:
+            prepped_corpus = [[word.lower() for word in doc]
+                              for doc in prepped_corpus]
+        # TODO (7/12/19 faunam): make lowercasing corpus optional
+
+        id_to_word = corpora.Dictionary(prepped_corpus)
+        term_document_frequency = [
+            id_to_word.doc2bow(doc) for doc in prepped_corpus]
+        topic_model = LdaMallet(path_to_mallet, corpus=term_document_frequency,
+                                id2word=id_to_word, num_topics=num_topics, **kwargs)
+
+        docs = OrderedDict(("doc" + str(i), " ".join(doc))
+                           for i, doc in enumerate(prepped_corpus))
+
+        cls._docs = docs
+        cls._vocabulary = [word for word in id_to_word.values()]
+
+        return topic_model
 
     def __init__(self, corpus_filepath, mallet_doctopic_filepath=None,
                  mallet_topic_wordcount_filepath=None, mallet_instance_filepath=None,
@@ -184,7 +201,7 @@ class TopicModel():
             if path_to_mallet is None:
                 path_to_mallet = "mallet"
             # tests that mallet is there, doesnt run it
-            _call_command_line(path_to_mallet)
+            util.call_command_line(path_to_mallet)
         except:
             raise RuntimeError("Unable to locate mallet command {}. Please \
             make sure Mallet is added to your PATH variable, or add the path to \
@@ -195,8 +212,10 @@ class TopicModel():
         if mallet_doctopic_filepath is None and mallet_topic_wordcount_filepath is None \
                 and mallet_instance_filepath is None:
 
-            topic_model, self._docs, self._vocabulary = _make_mallet_model(
+            # self._docs and self._vocabulary are assigned in the body of this class method call
+            topic_model = TopicModel._make_mallet_model(
                 corpus_filepath, path_to_mallet, remove_stopwords, corpus_language, num_topics, **kwargs)
+            # is it weird that it assigns attributes but also returns something? TODO
             self._n_docs = len(self.docs)
             self._n_voc_words = len(self.vocabulary)
             self._n_topics = num_topics
@@ -208,9 +227,8 @@ class TopicModel():
                 doc_topic_prop_matrix[i] = doc_topics
 
             self._doc_topic_proportions = doc_topic_prop_matrix
-            # csc_matrix for storage simplicity
-            self._topic_wordcounts = coo_matrix(
-                topic_model.load_word_topics()).tocsc()
+            # coo_matrix for storage simplicity
+            self._topic_wordcounts = coo_matrix(topic_model.load_word_topics())
             self._total_topic_prop = None
             self._keyword_prop = None
             self._superkeyword_bin = None
@@ -218,11 +236,13 @@ class TopicModel():
         # topic model outputs using MALLET output files
         elif mallet_doctopic_filepath is not None and mallet_topic_wordcount_filepath is not None \
                 and mallet_instance_filepath is not None:
-            self._docs = _make_doc_dictionary(
+            # assigns self._docs
+            TopicModel._make_doc_dictionary(
                 path_to_mallet, mallet_instance_filepath)
-            self._doc_topic_proportions, self._n_docs, self._n_topics = _make_doctopic_matrix(
-                mallet_doctopic_filepath)
-            self._topic_wordcounts, self._vocabulary, self._n_voc_words = _make_wordcount_and_vocab(
+            # assigns self._doc_topic_proportions, self._n_docs, self._n_topics
+            TopicModel._make_doctopic_matrix(mallet_doctopic_filepath)
+            # assigns self._topic_wordcounts, self._vocabulary, self._n_voc_words
+            TopicModel._make_wordcount_and_vocab(
                 mallet_topic_wordcount_filepath, self.n_topics)
 
             self._total_topic_prop = None
