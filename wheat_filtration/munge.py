@@ -6,6 +6,8 @@ import nltk.data
 
 
 def _make_punctuation_dict():
+    """Return a dictionary for punctuation removal. Maps all punctuation to an empty
+    string except hyphens, which are mapped to a string containing one space."""
     # make punctuation dictionary
     punc_dict = str.maketrans('', '', string.punctuation)
     # unicode latin supplement block
@@ -33,84 +35,43 @@ def clean_punc(phrase):
     return phrase.translate(PUNC_DICT)
 
 
-def import_corpus(source: str):
-    """Load corpus from source into one string.
+def import_corpus(corpus_filepath: str):
+    """Load corpus from corpus_filepath into one string.
     Arguments:
-        source (str): the path to the text file or directory (containing text files)
-            where the corpus is located. if source is a directory, it must end in /
-            or \\ (whatever is appropriate to your system)! This function will parse all
+        corpus_filepath (str): the path to the text file or directory (containing text files)
+            where the corpus is located. If corpus_filepath is a directory, it must end in /
+            or \\ (whichever is appropriate to your system)! This function will parse all
             files in the given directory that are not system files.
     Returns:
         full_corp (str): a string containing the corpus"""
 
     full_corp = ""
-    if not os.path.isdir(source):
-        with open(source, "r") as in_file:
+    if not os.path.isdir(corpus_filepath):
+        with open(corpus_filepath, "r") as in_file:
             full_corp += in_file.read()
     else:
-        directory = os.fsencode(source)
+        directory = os.fsencode(corpus_filepath)
         for thisfile in os.listdir(directory):
             filename = os.fsdecode(thisfile)
             # skip system files
-            # maybe add functionality that allows them to give a regex for the kinds of files they want to parse
+            # TODO maybe add functionality that allows them to give a regex for the kinds of files they want to parse
             if filename[0] == ".":  # eg or regex not in filename
                 continue
-            if not os.path.isdir(source + filename):
-                with open(source + filename, "r") as in_file:
+            if not os.path.isdir(corpus_filepath + filename):
+                with open(corpus_filepath + filename, "r") as in_file:
                     full_corp += in_file.read()
             else:
                 continue
     return full_corp
 
 
-def corpus_to_documents(corpus: str, doc_size_range=(250, 500)):
-    """Splits corpus into appropriately sized documents in the form of strings with
-    a length falling within doc_size_range.
-    Arguments:
-        corpus (str): a string containing the corpus
-        doc_size_range ((int,int), optional): a tuple containing the min and the
-        max number of words to be included in a document. Default is (250, 500).
-    Returns:
-        corpus_documents (iterable of str): a list containing strings representing documents in the corpus.
-        Document lengths fall within doc_size_range, except possibly for the last document in the corpus.
-        They end on the next sentence punctuation after the minimum number of words, or at
-        the maximum number of words, whichever comes first. If the sentence following
-        a document is the last in the corpus, it is also included in the document."""
-
-    sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
-    sentences = sentence_detector.tokenize(
-        corpus.strip())  # tokens have punc attached
-    min_words = doc_size_range[0]
-    max_words = doc_size_range[1]
-
-    corpus_documents = []
-    document_in_progress = []
-    for sentence in sentences:
-        while len(document_in_progress) > max_words:
-            corpus_documents.append(" ".join(document_in_progress[:max_words]))
-            document_in_progress = document_in_progress[max_words:]
-        if len(document_in_progress) < min_words:
-            document_in_progress.extend(sentence.split())
-        else:
-            # add document to corpus once it is between min_words and max_words
-            corpus_documents.append(" ".join(document_in_progress))
-            document_in_progress = []
-    # adds leftover at end of corpus to last document
-    try:
-        corpus_documents[-1] = corpus_documents[-1] + \
-            " ".join(document_in_progress)
-    # allow user to import an abnormally small corpus; warn at time of topic model creation
-    except IndexError:
-        corpus_documents.append(document_in_progress)
-
-    return corpus_documents
-
-
-def corpus_to_doc_tokens(corpus: str, doc_size_range=(250, 500)):
+def corpus_to_doc_tokens(corpus_filepath: str, doc_size_range=(250, 500)):
     """Splits corpus into tokenized documents, in the form of lists of strings, of appropriate size
     (number of words within doc_size_range).
     Arguments:
-        corpus (str): a string containing the corpus
+        corpus_filepath (str): the path to the text file or directory (containing text files)
+            where the corpus is located. If corpus_filepath is a directory, it must end in /
+            or \\ (whichever is appropriate to your system)
         doc_size_range ((int,int), optional): a tuple containing the min and the
         max number of words to be included in a document. Default is (250, 500).
     Returns:
@@ -120,6 +81,7 @@ def corpus_to_doc_tokens(corpus: str, doc_size_range=(250, 500)):
         the maximum number of words, whichever comes first. If the sentence following
         a document is the last in the corpus, it is also included in the document."""
 
+    corpus = import_corpus(corpus_filepath)
     sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
     sentences = sentence_detector.tokenize(
         corpus.strip())  # tokens have punc attached
@@ -145,6 +107,26 @@ def corpus_to_doc_tokens(corpus: str, doc_size_range=(250, 500)):
     except IndexError:
         corpus_documents.append(document_in_progress)
 
+    return corpus_documents
+
+
+def corpus_to_documents(corpus_filepath: str, doc_size_range=(250, 500)):
+    """Splits corpus into appropriately sized documents in the form of strings with
+    a length falling within doc_size_range.
+    Arguments:
+        corpus_filepath (str): the path to the text file or directory (containing text files)
+            where the corpus is located. If corpus_filepath is a directory, it must end in /
+            or \\ (whichever is appropriate to your system)
+        doc_size_range ((int,int), optional): a tuple containing the min and the
+        max number of words to be included in a document. Default is (250, 500).
+    Returns:
+        corpus_documents (iterable of str): a list containing strings representing documents in the corpus.
+        Document lengths fall within doc_size_range, except possibly for the last document in the corpus.
+        They end on the next sentence punctuation after the minimum number of words, or at
+        the maximum number of words, whichever comes first. If the sentence following
+        a document is the last in the corpus, it is also included in the document."""
+    tokenized_corpus = corpus_to_doc_tokens(corpus_filepath, doc_size_range)
+    corpus_documents = [(" ").join(doc) for doc in tokenized_corpus]
     return corpus_documents
 
 
