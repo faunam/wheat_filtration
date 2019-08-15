@@ -7,6 +7,8 @@ def total_topic_proportion(document_topics, relevant_topics):
         document_topics (iterable of float): topic proportions for one document.
         relevant topics (iterable of int): a list of the numbers corresponding
             with the topics considered relevant by the user."""
+    assert (len(relevant_topics) <= len(document_topics)
+            )  # TODO make this the right kind of error
     return sum([document_topics[i] for i in relevant_topics])
 
 
@@ -20,9 +22,7 @@ def keyword_proportion(document, keyword_list):
 
 def superkeyword_presence(document, superkeywords):
     """Return 1 if document contains any superkeywords, 0 if not."""
-    # TODO: deal with this appropriately when making lowercasing optional
-    lower_superkeys = [word.lower() for word in superkeywords]
-    for word in lower_superkeys:
+    for word in superkeywords:
         if word in document.split():
             return True
     return False
@@ -37,7 +37,8 @@ class FilterHelper():
         topic_model (TopicModel): a TopicModel object instantiated with a corpus or
             files from a Mallet topic model.
         relevant_topics (iterable of int): a list of the numbers corresponding
-            with the topics considered relevant by the user.
+            with the topics considered relevant by the user. Note that the number
+            corresponding with the first topic is '0', the second topic is '1', etc.
         n_keywords: number of keywords to include in keyword list. Default is 20.
         superkeywords (iterable of str): a list of keywords which signify immediate relevance
             of the document that contains them (better wording). Default is an empty list.
@@ -78,7 +79,16 @@ class FilterHelper():
                 topic_model, n_keywords, relevant_topics)
         else:
             self._keyword_list = keyword_list
-        self._superkeywords = superkeywords
+
+        lower_superkeys = [word.lower() for word in superkeywords]
+        # TODO: deal with this appropriately when making lowercasing optional
+        extended_superkeys = [
+            word for word in topic_model.vocabulary if
+            word in lower_superkeys or
+            any([(chunk in lower_superkeys) for chunk in word.split('_')])
+        ]
+        self._superkeywords = extended_superkeys
+
         self._total_topic_prop_threshold = total_topic_prop_threshold
         self._keyword_prop_threshold = keyword_prop_threshold
         self._topic_model = topic_model
