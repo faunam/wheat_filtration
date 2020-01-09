@@ -75,10 +75,9 @@ class FilterHelper():
                  total_topic_prop_threshold=0.25, keyword_prop_threshold=0.15):
         self._relevant_topics = relevant_topics
         if keyword_list is None:
-            self._keyword_list = keywords.rel_ent_key_list(
+            keyword_list = keywords.rel_ent_key_list(
                 topic_model, n_keywords, relevant_topics)
-        else:
-            self._keyword_list = keyword_list
+        self._keyword_list = keyword_list
 
         lower_superkeys = [word.lower() for word in superkeywords]
         # TODO: deal with this appropriately when making lowercasing optional
@@ -166,9 +165,7 @@ def is_relevant(doc, doc_topics, filter_helper):
     passes_keyword_thresh = keyword_proportion(
         doc, filter_helper.keyword_list) > filter_helper.keyword_prop_threshold
 
-    if has_superkeyword or passes_total_topic_thresh or passes_keyword_thresh:
-        return True
-    return False
+    return has_superkeyword or passes_total_topic_thresh or passes_keyword_thresh
 
 
 def filter_corpus(topic_model, filter_helper):
