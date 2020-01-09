@@ -112,7 +112,7 @@ class FilterHelper():
     def keyword_list(self, keyword_list=None, n_keywords=None):
         if keyword_list is not None:
             self._keyword_list = keyword_list
-        if n_keywords is not None:
+        elif n_keywords is not None:
             self._keyword_list = keywords.rel_ent_key_list(
                 self.topic_model, n_keywords, self.relevant_topics)
         else:
