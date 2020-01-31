@@ -12,7 +12,7 @@ from nltk.corpus import stopwords
 import munge
 import util
 
-MALLET_PATH = None  # "/Users/fauma/Mallet-master/bin/mallet"  #
+MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None  #
 
 
 class TopicModel():
@@ -86,7 +86,7 @@ class TopicModel():
         command = "{} info --input {} --print-instances".format(path_to_mallet,
                                                                 mallet_instance_filepath)
         outfile = open("temp_docs_will_be_deleted.txt", "w")
-        util.call_command_line(command.split(" "), stdout=outfile)
+        util.call_command_line(command, stdout=outfile)
         outfile.close()
 
         docs_dictionary = OrderedDict()
