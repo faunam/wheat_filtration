@@ -2,7 +2,7 @@ import numpy as np
 
 
 def rel_ent_key_list(topic_model, n_top_keywords, relevant_topics):
-    """Returns a list of the top n keywords according to relative entropy [better]
+    """Returns a list of the top n keywords based on relative entropy score
      Arguments:
        topic_model (TopicModel): a topic by vocabulary word matrix where each entry
        is the total word count for that word in that topic
@@ -11,18 +11,17 @@ def rel_ent_key_list(topic_model, n_top_keywords, relevant_topics):
      Returns:
        keyword_list (iterable of str): list of the top n keywords, sorted
      """
-    # TODO fix docstring
     topic_word_matrix = topic_model.topic_wordcounts.tocsr()
     # Log of probabilities of vocab words
 
     vocab_logs = np.log(topic_word_matrix.sum(
         axis=0) / topic_word_matrix.sum())
 
-    # Log of probabilities of vocab words given they were in each relevant topic (?)
+    # Log of probabilities of vocab words given they were in each relevant topic
     topic_logs = np.log(topic_word_matrix[relevant_topics, :].sum(
-        axis=0) / topic_word_matrix[relevant_topics, :].sum())  # keeps giving me divide by 0 warning
+        axis=0) / topic_word_matrix[relevant_topics, :].sum())
 
-    # relative entropy proportions, unsorted (?)
+    # relative entropy proportions, unsorted
     unsorted_props = np.asarray(topic_word_matrix.sum(axis=0) /
                                 topic_word_matrix.sum()) * np.asarray(topic_logs - vocab_logs)
 

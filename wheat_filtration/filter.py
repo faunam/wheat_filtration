@@ -196,12 +196,14 @@ def filter_corpus(topic_model, filter_helper):
 def proportion_lists():
     """makes a matrix or list of ttp, superkeyword, and keyword proportion for the docs in corpus
     and sets the respective topic model attributes"""
+    pass
 
 
 def subset_quality(threshs, labeled_subset):  # also had args word_list_gen and scorefun
     """Calculate F1 score for the array of thresholds threshs
     (max topic prop, total topic prop, vocab prop, and number of words
     in vocabulary list) on labeled subset"""
+    pass
 
 
 def subset_info(threshs):  # seems like a cool feature to include
@@ -210,3 +212,4 @@ def subset_info(threshs):  # seems like a cool feature to include
     predicted as relevant, about the subset created by the given set of thresholds
     (mtp, ttp, voc prop, and voc list length, in that order).
     This function can be edited to output any kind of info about the subset, eg the filenames."""
+    pass

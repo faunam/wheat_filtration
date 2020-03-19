@@ -12,7 +12,7 @@ from nltk.corpus import stopwords
 import munge
 import util
 
-MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"  # None  #
+MALLET_PATH = "/Users/fauma/Mallet-master/bin/mallet"
 
 
 class TopicModel():
@@ -63,9 +63,6 @@ class TopicModel():
         n_docs (int): Number of documents in corpus.
         n_topics (int): Number of topics used to make LDA topic model.
         n_voc_words (int): Number of vocabulary words in corpus.
-        topic_keys (iterable of str): Settable. A list of the top keywords of
-            each topic. Default is 20 keywords per topic. Input desired number of keywords
-            per topic to set.
         topic_wordcounts (numpy.ndarray): a COO sparse matrix containing the counts of each
             vocabulary word in each topic. Shape: (number of topics, number of vocab words)
         vocabulary (iterable of str): a list containing all vocabulary words. Indeces match column
@@ -77,7 +74,6 @@ class TopicModel():
         and mallet_instance_filepath is passed an argument. Must pass all an argument, or none.
         UserWarning: If corpus is unusually small (less than 100 documents).
     """
-    # TODO appropriate description for setting topic_keys? or does that go in the properties section?
 
     def _make_doc_dictionary(self, path_to_mallet, mallet_instance_filepath):
         """Assigns class attribute _docs, an Ordered Dictionary containing document
@@ -218,7 +214,6 @@ class TopicModel():
             # self._docs and self._vocabulary are assigned in the body of this class method call
             mallet_model = self._make_mallet_model(
                 corpus_filepath, path_to_mallet, remove_stopwords, corpus_language, num_topics, **kwargs)
-            # is it weird that it assigns attributes but also returns something? TODO
             self._n_docs = len(self.docs)
             self._n_voc_words = len(self.vocabulary)
             self._n_topics = num_topics
@@ -233,7 +228,6 @@ class TopicModel():
             # coo_matrix for storage simplicity
             self._topic_wordcounts = coo_matrix(
                 mallet_model.load_word_topics())
-            # TODO topic_keys
 
         # topic model outputs using MALLET output files
         elif mallet_doctopic_filepath is not None and mallet_topic_wordcount_filepath is not None \
@@ -301,16 +295,3 @@ class TopicModel():
     def n_voc_words(self):
         """Get the number of corpus vocabulary words"""
         return self._n_voc_words
-
-    # @property
-    # def topic_keys(self):
-    #     """Get or set a list containing strings of the top keywords of each topic.
-    #     Input the number of keywords per topic to set. Default is 20 keywords per topic."""
-    #     if self._topic_keys is None:
-    #         self._topic_keys = #TODO
-    #         return self.topic_keys
-    #     return self._topic_keys
-
-    # @topic_keys.setter
-    # def topic_keys(self, n_keys):
-    #     assert n_keys < self.n_voc_words, "n_keys is bigger than vocabulary size"

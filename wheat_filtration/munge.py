@@ -54,7 +54,7 @@ def import_corpus(corpus_filepath: str):
         for thisfile in os.listdir(directory):
             filename = os.fsdecode(thisfile)
             # skip system files
-            # TODO maybe add functionality that allows them to give a regex for the kinds of files they want to parse
+            # TODO add functionality enabling a regex input for the kinds of files they want to parse
             if filename[0] == ".":  # eg or regex not in filename
                 continue
             if not os.path.isdir(corpus_filepath + filename):
